@@ -85,9 +85,9 @@ class MainActivity : Activity() {
         }.start()
     }
 
-    /** (Ad Soyad, Telefon) çiftleri; aynı kişi + aynı numara tekrarları atılır. */
+    /** (Ad Soyad, Telefon) çiftleri; aynı kişi + aynı numara (biçimi farklı olsa da) tekrarları atılır. */
     private fun readContacts(): List<List<String>> {
-        val result = LinkedHashSet<Pair<String, String>>()
+        val result = LinkedHashMap<String, List<String>>()
         contentResolver.query(
             Phone.CONTENT_URI,
             arrayOf(Phone.DISPLAY_NAME, Phone.NUMBER),
@@ -99,10 +99,16 @@ class MainActivity : Activity() {
             while (c.moveToNext()) {
                 val name = c.getString(nameIdx)?.trim().orEmpty()
                 val number = c.getString(numIdx)?.trim().orEmpty()
-                if (number.isNotEmpty()) result.add(name to number)
+                if (number.isEmpty()) continue
+
+                val digits = number.filter { it.isDigit() }
+                val tail = if (digits.length > 10) digits.takeLast(10) else digits
+                val key = name.lowercase(Locale.forLanguageTag("tr-TR")) + "|" + tail
+
+                if (!result.containsKey(key)) result[key] = listOf(name, number)
             }
         }
-        return result.map { listOf(it.first, it.second) }
+        return result.values.toList()
     }
 
     private fun saveToDownloads(rows: List<List<String>>): String {
